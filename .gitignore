@@ -1,0 +1,21 @@
+bin/
+dist/
+*.exe
+*.test
+*.out
+coverage.txt
+
+# Local data
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# Env
+.env
+.env.local
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
