@@ -1,0 +1,31 @@
+[Unit]
+Description=whitagotchi server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=whitagotchi
+Group=whitagotchi
+WorkingDirectory=/var/lib/whitagotchi
+ExecStart=/usr/local/bin/whitagotchi-server
+Restart=on-failure
+RestartSec=3
+
+# env
+Environment=WHITAGOTCHI_ADDR=:8080
+Environment=WHITAGOTCHI_DB=/var/lib/whitagotchi/whitagotchi.db
+Environment=WHITAGOTCHI_PACE=1.0
+# Drop in your OpenAI key here, OR use EnvironmentFile=/etc/whitagotchi.env
+# Environment=OPENAI_API_KEY=sk-...
+EnvironmentFile=-/etc/whitagotchi.env
+
+# hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/whitagotchi
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,7 @@
 package game
 
 import (
-	"crypto/rand"
+	crand "crypto/rand"
 	"encoding/hex"
 	"math/rand/v2"
 	"time"
@@ -43,6 +43,6 @@ func rollSpecies() (shared.Species, shared.Rarity) {
 
 func newID() string {
 	var b [8]byte
-	_, _ = rand.Read(b[:])
+	_, _ = crand.Read(b[:])
 	return hex.EncodeToString(b[:])
 }

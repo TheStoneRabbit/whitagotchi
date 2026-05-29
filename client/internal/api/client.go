@@ -2,11 +2,16 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 
 	"github.com/whitagotchi/whitagotchi/client/internal/config"
 	"github.com/whitagotchi/whitagotchi/shared"
@@ -47,21 +52,51 @@ func (c *Client) Action(action string) (*shared.StatusResponse, error) {
 	return &out, nil
 }
 
-func (c *Client) ChatSend(to, msg string) error {
-	body, _ := json.Marshal(shared.ChatInbound{To: to, Message: msg})
-	return c.do("POST", "/chat", body, nil, true)
+// ChatConn is a thin wrapper around the WS connection with typed Send/Recv.
+type ChatConn struct {
+	conn *websocket.Conn
+	ctx  context.Context
 }
 
-func (c *Client) ChatPoll() (*shared.ChatOutbound, error) {
-	var out shared.ChatOutbound
-	err := c.do("GET", "/chat", nil, &out, true)
+func (cc *ChatConn) Send(to, msg string) error {
+	ctx, cancel := context.WithTimeout(cc.ctx, 10*time.Second)
+	defer cancel()
+	return wsjson.Write(ctx, cc.conn, shared.ChatInbound{To: to, Message: msg})
+}
+
+func (cc *ChatConn) Recv() (*shared.ChatOutbound, error) {
+	var m shared.ChatOutbound
+	if err := wsjson.Read(cc.ctx, cc.conn, &m); err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (cc *ChatConn) Close() error {
+	return cc.conn.Close(websocket.StatusNormalClosure, "")
+}
+
+// Chat opens a WebSocket connection to the server. The returned ChatConn must be Close()'d.
+func (c *Client) Chat(ctx context.Context) (*ChatConn, error) {
+	if c.cfg.Token == "" {
+		return nil, fmt.Errorf("not registered (run `whitagotchi register <username>`)")
+	}
+	url := httpToWS(c.cfg.Server) + "/chat?token=" + c.cfg.Token
+	conn, _, err := websocket.Dial(ctx, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	if out.From == "" {
-		return nil, nil
+	return &ChatConn{conn: conn, ctx: ctx}, nil
+}
+
+func httpToWS(u string) string {
+	switch {
+	case strings.HasPrefix(u, "https://"):
+		return "wss://" + strings.TrimPrefix(u, "https://")
+	case strings.HasPrefix(u, "http://"):
+		return "ws://" + strings.TrimPrefix(u, "http://")
 	}
-	return &out, nil
+	return u
 }
 
 func (c *Client) do(method, path string, body []byte, out any, authed bool) error {

@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -46,33 +48,47 @@ func cmdAction(c *api.Client, action string) error {
 }
 
 func cmdChat(c *api.Client, peer string) error {
-	fmt.Printf("Chatting with %s. Type a message and hit enter. Ctrl-C to quit.\n", peer)
-	// Spawn a goroutine to poll for inbound messages.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	conn, err := c.Chat(ctx)
+	if err != nil {
+		return fmt.Errorf("connect: %w", err)
+	}
+	defer conn.Close()
+
+	fmt.Printf("Connected. Chatting with %s. Type a message and hit enter. Ctrl-C to quit.\n", peer)
+
+	// Reader goroutine: print inbound messages.
 	go func() {
 		for {
-			m, err := c.ChatPoll()
+			m, err := conn.Recv()
 			if err != nil {
-				continue
-			}
-			if m == nil {
-				continue
+				cancel()
+				return
 			}
 			fmt.Printf("\n[%s the %s] %s\n> ", m.From, m.FromSpecies, m.Paraphrased)
 		}
 	}()
+
+	// Main loop: read stdin and send.
 	r := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("> ")
 		line, err := r.ReadString('\n')
 		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
 			return err
 		}
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		if err := c.ChatSend(peer, line); err != nil {
+		if err := conn.Send(peer, line); err != nil {
 			fmt.Fprintf(os.Stderr, "send failed: %v\n", err)
+			return err
 		}
 	}
 }
