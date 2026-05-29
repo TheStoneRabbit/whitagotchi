@@ -30,6 +30,7 @@ const (
 	animInterval    = 600 * time.Millisecond
 	statusInterval  = 10 * time.Second
 	maxChatMessages = 200
+	inputWidth      = 78 // visible width of the input row, in runes
 )
 
 type mode int
@@ -401,7 +402,7 @@ func (m *model) viewPickPeer() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("whitagotchi · new chat") + "\n\n")
 	b.WriteString("who do you want to chat with?\n\n")
-	b.WriteString(inputStyle.Render("> "+m.input+"_") + "\n\n")
+	b.WriteString(renderInput(m.input) + "\n\n")
 	b.WriteString(helpStyle.Render("[enter] connect  [esc] back"))
 	return b.String()
 }
@@ -442,10 +443,28 @@ func (m *model) viewChat() string {
 	}
 
 	body := chatBox.Width(80).Height(12).Render(log.String())
-	input := inputStyle.Render("> " + m.input + "_")
+	input := renderInput(m.input)
 	footer := helpStyle.Render("[enter] send  [esc] back to pet  [ctrl+c] quit")
 
 	return header + "\n\n" + pets + "\n\n" + body + "\n" + input + "\n\n" + footer
+}
+
+// renderInput shows the input field with a horizontal scroll window. When the
+// typed text is longer than inputWidth, the visible tail follows the caret and
+// an ellipsis marks the truncated head.
+func renderInput(s string) string {
+	const prefix, caret = "> ", "_"
+	runes := []rune(s)
+	avail := inputWidth - len([]rune(prefix)) - len([]rune(caret))
+	if avail < 1 {
+		avail = 1
+	}
+	if len(runes) <= avail {
+		return inputStyle.Render(prefix + string(runes) + caret)
+	}
+	// Reserve one rune for the leading ellipsis.
+	visible := runes[len(runes)-(avail-1):]
+	return inputStyle.Render(prefix + "…" + string(visible) + caret)
 }
 
 func petCard(role, name string, sp shared.Species, st shared.Stage, q shared.Quirk, art string) string {
