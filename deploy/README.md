@@ -37,6 +37,27 @@ That script cross-compiles the linux/amd64 binary, scp's it up, installs it to `
 
 First deploy: the service won't start yet because the binary isn't there. Run `deploy.sh` first, then `systemctl start whitagotchi-server`.
 
+## Letting others install the client from your server
+
+Each deploy uploads `whitagotchi-darwin-{amd64,arm64}` and `whitagotchi-linux-amd64` to `/var/lib/whitagotchi/bin/`. The server exposes them at `/bin/<file>` and serves a tailored install script at `/install`:
+
+```sh
+curl -fsSL http://masonlapine.com:8080/install | sh
+```
+
+The script detects OS/arch, downloads the right binary to `~/.local/bin` (or `/usr/local/bin` if writable), and writes a default `config.json` pointing back at your server. After it runs:
+
+```sh
+whitagotchi register <username>
+whitagotchi
+```
+
+To skip the client cross-compile during a fast server-only deploy:
+
+```sh
+SKIP_CLIENTS=1 HOST=root@yourbox ./deploy/deploy.sh
+```
+
 ## Point the client at the server
 
 On your laptop:

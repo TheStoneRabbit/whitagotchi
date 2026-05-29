@@ -16,6 +16,8 @@ import (
 func main() {
 	addr := envOr("WHITAGOTCHI_ADDR", ":8080")
 	dbPath := envOr("WHITAGOTCHI_DB", "whitagotchi.db")
+	binDir := envOr("WHITAGOTCHI_BIN_DIR", "bin")
+	publicURL := envOr("WHITAGOTCHI_PUBLIC_URL", "")
 
 	st, err := store.Open(dbPath)
 	if err != nil {
@@ -32,7 +34,10 @@ func main() {
 	hub := chat.NewHub(st, chat.Config{OpenAIKey: os.Getenv("OPENAI_API_KEY")})
 	go hub.Run()
 
-	mux := api.NewRouter(st, engine, hub)
+	mux := api.NewRouter(st, engine, hub, api.InstallConfig{
+		BinDir:    binDir,
+		PublicURL: publicURL,
+	})
 	log.Printf("whitagotchi-server listening on %s", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatal(err)

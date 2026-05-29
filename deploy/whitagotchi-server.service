@@ -16,6 +16,10 @@ RestartSec=3
 Environment=WHITAGOTCHI_ADDR=:8080
 Environment=WHITAGOTCHI_DB=/var/lib/whitagotchi/whitagotchi.db
 Environment=WHITAGOTCHI_PACE=1.0
+Environment=WHITAGOTCHI_BIN_DIR=/var/lib/whitagotchi/bin
+# If you have a public URL (e.g. behind nginx with TLS), set it here so
+# the /install script uses the right host. Otherwise it's derived from the request.
+# Environment=WHITAGOTCHI_PUBLIC_URL=https://whitagotchi.masonlapine.com
 # Drop in your OpenAI key here, OR use EnvironmentFile=/etc/whitagotchi.env
 # Environment=OPENAI_API_KEY=sk-...
 EnvironmentFile=-/etc/whitagotchi.env

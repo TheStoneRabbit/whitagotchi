@@ -14,19 +14,30 @@ import (
 )
 
 type Server struct {
-	store  *store.Store
-	engine *game.Engine
-	hub    *chat.Hub
+	store     *store.Store
+	engine    *game.Engine
+	hub       *chat.Hub
+	installer InstallConfig
 }
 
-func NewRouter(s *store.Store, e *game.Engine, h *chat.Hub) http.Handler {
-	srv := &Server{store: s, engine: e, hub: h}
+// InstallConfig controls the self-hosted installer endpoints.
+type InstallConfig struct {
+	BinDir    string // directory on disk holding client binaries (whitagotchi-<os>-<arch>)
+	PublicURL string // base URL the server is reachable at (empty = derive from request)
+}
+
+func NewRouter(s *store.Store, e *game.Engine, h *chat.Hub, inst InstallConfig) http.Handler {
+	srv := &Server{store: s, engine: e, hub: h, installer: inst}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /register", srv.register)
 	mux.HandleFunc("GET /status", srv.auth(srv.status))
 	mux.HandleFunc("POST /action", srv.auth(srv.action))
 	mux.HandleFunc("GET /peer", srv.auth(srv.peer))
 	mux.HandleFunc("GET /chat", srv.auth(srv.chatWS))
+	mux.HandleFunc("GET /install", srv.install)
+	if inst.BinDir != "" {
+		mux.Handle("GET /bin/", http.StripPrefix("/bin/", http.FileServer(http.Dir(inst.BinDir))))
+	}
 	return mux
 }
 
