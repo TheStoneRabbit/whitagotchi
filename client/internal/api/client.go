@@ -43,6 +43,14 @@ func (c *Client) Status() (*shared.StatusResponse, error) {
 	return &out, nil
 }
 
+func (c *Client) Reroll() (*shared.StatusResponse, error) {
+	var out shared.StatusResponse
+	if err := c.do("POST", "/reroll", nil, &out, true); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *Client) Peer(name string) (*shared.PeerInfoResponse, error) {
 	var out shared.PeerInfoResponse
 	if err := c.do("GET", "/peer?name="+name, nil, &out, true); err != nil {

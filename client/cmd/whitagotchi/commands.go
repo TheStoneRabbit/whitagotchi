@@ -37,6 +37,16 @@ func cmdStatus(c *api.Client) error {
 	return nil
 }
 
+func cmdReroll(c *api.Client) error {
+	resp, err := c.Reroll()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("new quirk: %s\n\n", resp.Creature.Quirk)
+	fmt.Println(render.Creature(&resp.Creature))
+	return nil
+}
+
 func cmdAction(c *api.Client, action string) error {
 	resp, err := c.Action(action)
 	if err != nil {

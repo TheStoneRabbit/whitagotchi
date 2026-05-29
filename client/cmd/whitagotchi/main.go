@@ -15,6 +15,7 @@ usage:
   whitagotchi register <username>     create your account + hatch an egg
   whitagotchi status                  show your creature
   whitagotchi feed | play | bathe     care actions
+  whitagotchi reroll                  reroll your personality quirk
   whitagotchi chat <user>             open chat with another user
   whitagotchi tui                     interactive TUI (default if no args)
 
@@ -46,6 +47,8 @@ func main() {
 		mustRun(cmdStatus(client))
 	case "feed", "play", "bathe":
 		mustRun(cmdAction(client, args[0]))
+	case "reroll":
+		mustRun(cmdReroll(client))
 	case "chat":
 		if len(args) < 2 {
 			fmt.Println(usage)

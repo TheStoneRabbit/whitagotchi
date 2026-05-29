@@ -32,6 +32,7 @@ func NewRouter(s *store.Store, e *game.Engine, h *chat.Hub, inst InstallConfig) 
 	mux.HandleFunc("POST /register", srv.register)
 	mux.HandleFunc("GET /status", srv.auth(srv.status))
 	mux.HandleFunc("POST /action", srv.auth(srv.action))
+	mux.HandleFunc("POST /reroll", srv.auth(srv.reroll))
 	mux.HandleFunc("GET /peer", srv.auth(srv.peer))
 	mux.HandleFunc("GET /chat", srv.auth(srv.chatWS))
 	mux.HandleFunc("GET /install", srv.install)
@@ -93,6 +94,18 @@ func (s *Server) action(w http.ResponseWriter, r *http.Request, user *store.User
 	}
 	s.engine.AdvanceNow(c)
 	game.ApplyAction(c, req.Action)
+	s.store.UpdateCreature(c)
+	writeJSON(w, shared.StatusResponse{Creature: *c})
+}
+
+func (s *Server) reroll(w http.ResponseWriter, r *http.Request, user *store.User) {
+	c, ok := s.store.Creature(user.Username)
+	if !ok {
+		http.Error(w, "no creature", http.StatusNotFound)
+		return
+	}
+	s.engine.AdvanceNow(c)
+	c.Quirk = game.RerollQuirk(c.Quirk)
 	s.store.UpdateCreature(c)
 	writeJSON(w, shared.StatusResponse{Creature: *c})
 }

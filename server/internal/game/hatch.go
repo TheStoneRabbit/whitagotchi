@@ -28,6 +28,16 @@ func Hatch(owner string) *shared.Creature {
 	}
 }
 
+// RerollQuirk returns a random quirk that is not equal to `current`.
+func RerollQuirk(current shared.Quirk) shared.Quirk {
+	for {
+		q := shared.AllQuirks[rand.IntN(len(shared.AllQuirks))]
+		if q != current {
+			return q
+		}
+	}
+}
+
 func rollSpecies() (shared.Species, shared.Rarity) {
 	roll := rand.Float64() * 100
 	var acc float64

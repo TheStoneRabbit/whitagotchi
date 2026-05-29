@@ -126,6 +126,16 @@ func (m *model) doAction(name string) tea.Cmd {
 	}
 }
 
+func (m *model) doReroll() tea.Cmd {
+	return func() tea.Msg {
+		resp, err := m.client.Reroll()
+		if err != nil {
+			return actionMsg{label: "reroll", err: err}
+		}
+		return actionMsg{label: "new quirk: " + string(resp.Creature.Quirk), c: &resp.Creature}
+	}
+}
+
 func (m *model) fetchPeer(name string) tea.Cmd {
 	return func() tea.Msg {
 		info, err := m.client.Peer(name)
@@ -259,6 +269,9 @@ func (m *model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "r":
 			m.message = "refreshing..."
 			return m, m.fetchStatus()
+		case "R":
+			m.message = "rerolling quirk..."
+			return m, m.doReroll()
 		case "c":
 			m.mode = modePickPeer
 			m.input = ""
@@ -380,7 +393,7 @@ func (m *model) viewHome() string {
 		b.WriteString(msgStyle.Render(m.message) + "\n")
 	}
 	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("[f] feed  [p] play  [b] bathe  [c] chat  [r] refresh  [q] quit"))
+	b.WriteString(helpStyle.Render("[f] feed  [p] play  [b] bathe  [c] chat  [R] reroll quirk  [r] refresh  [q] quit"))
 	return b.String()
 }
 
