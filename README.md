@@ -73,6 +73,18 @@ cd client && go run ./cmd/whitagotchi
 
 Default server URL is `http://localhost:8080`. Override with `WHITAGOTCHI_SERVER`.
 
+## Shipping changes
+
+One command from the laptop pushes, deploys, and updates your local client:
+
+```sh
+./scripts/ship.sh                       # ship currently-committed code
+./scripts/ship.sh -m "fix the thing"    # commit all changes first, then ship
+SKIP_CLIENTS=1 ./scripts/ship.sh        # server-only (faster)
+```
+
+It pushes to origin, runs `deploy/deploy.sh`, then re-installs the local client from the server and removes any stale `~/go/bin/whitagotchi` that would shadow it.
+
 ## Self-host the server
 
 See [`deploy/README.md`](./deploy/README.md). The short version:
