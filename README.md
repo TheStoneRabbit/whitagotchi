@@ -9,7 +9,7 @@ See [CLAUDE.md](./CLAUDE.md) for the full design spec.
 If someone is hosting a whitagotchi server, the easiest install is one line:
 
 ```sh
-curl -fsSL http://<their-server>:8080/install | sh
+curl -fsSL http://masonlapine.com:8080/install | sh
 ```
 
 This drops the `whitagotchi` binary on your PATH and writes a config pointing at that server.
