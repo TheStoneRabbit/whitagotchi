@@ -43,6 +43,14 @@ func (c *Client) Status() (*shared.StatusResponse, error) {
 	return &out, nil
 }
 
+func (c *Client) Peer(name string) (*shared.PeerInfoResponse, error) {
+	var out shared.PeerInfoResponse
+	if err := c.do("GET", "/peer?name="+name, nil, &out, true); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *Client) Action(action string) (*shared.StatusResponse, error) {
 	body, _ := json.Marshal(shared.ActionRequest{Action: action})
 	var out shared.StatusResponse

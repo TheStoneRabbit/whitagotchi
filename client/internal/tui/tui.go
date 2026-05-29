@@ -52,10 +52,11 @@ type model struct {
 	mode  mode
 	input string // text being typed in pickpeer / chat
 
-	peer    string
-	conn    *api.ChatConn
-	cancel  context.CancelFunc
-	chatLog []chatLine
+	peer     string
+	peerInfo *shared.PeerInfoResponse
+	conn     *api.ChatConn
+	cancel   context.CancelFunc
+	chatLog  []chatLine
 }
 
 type chatLine struct {
@@ -84,6 +85,10 @@ type chatConnectedMsg struct {
 type chatRecvMsg struct {
 	msg *shared.ChatOutbound
 	err error
+}
+type peerInfoMsg struct {
+	info *shared.PeerInfoResponse
+	err  error
 }
 
 func newModel(client *api.Client, cfg *config.Config) *model {
@@ -118,6 +123,13 @@ func (m *model) doAction(name string) tea.Cmd {
 			return actionMsg{label: name, err: err}
 		}
 		return actionMsg{label: name, c: &resp.Creature}
+	}
+}
+
+func (m *model) fetchPeer(name string) tea.Cmd {
+	return func() tea.Msg {
+		info, err := m.client.Peer(name)
+		return peerInfoMsg{info: info, err: err}
 	}
 }
 
@@ -201,7 +213,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cancel = msg.cancel
 		m.mode = modeChat
 		m.appendChat(chatLine{from: "system", text: "connected. talking to " + m.peer})
-		return m, m.recvChat()
+		return m, tea.Batch(m.recvChat(), m.fetchPeer(m.peer))
+
+	case peerInfoMsg:
+		if msg.err != nil {
+			m.appendChat(chatLine{from: "system", text: "couldn't load peer info: " + msg.err.Error()})
+			return m, nil
+		}
+		m.peerInfo = msg.info
+		return m, nil
 
 	case chatRecvMsg:
 		if msg.err != nil {
@@ -279,6 +299,7 @@ func (m *model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "esc":
 			m.closeChat()
+			m.peerInfo = nil
 			m.mode = modeHome
 			m.input = ""
 			return m, nil
@@ -373,11 +394,22 @@ func (m *model) viewPickPeer() string {
 }
 
 func (m *model) viewChat() string {
-	header := titleStyle.Render("whitagotchi · chat with "+m.peer) + "  " +
-		helpStyle.Render("("+string(m.creature.Species)+" "+string(m.creature.Stage)+", quirk: "+string(m.creature.Quirk)+")")
+	header := titleStyle.Render("whitagotchi · chat with " + m.peer)
 
-	// Mini pet readout on the right column.
-	mini := petMini.Render(render.Frame(m.creature.Species, m.creature.Stage, m.frame))
+	// Our pet card
+	youCard := petCard("you", m.cfg.Username, m.creature.Species, m.creature.Stage, m.creature.Quirk,
+		render.Frame(m.creature.Species, m.creature.Stage, m.frame))
+
+	// Peer pet card (loading state if not yet fetched)
+	var peerCard string
+	if m.peerInfo != nil {
+		peerCard = petCard("them", m.peerInfo.Username, m.peerInfo.Species, m.peerInfo.Stage, m.peerInfo.Quirk,
+			render.Frame(m.peerInfo.Species, m.peerInfo.Stage, m.frame))
+	} else {
+		peerCard = petMini.Render("(loading " + m.peer + "...)")
+	}
+
+	pets := lipgloss.JoinHorizontal(lipgloss.Top, youCard, "   ", peerCard)
 
 	// Chat log
 	var log strings.Builder
@@ -396,11 +428,14 @@ func (m *model) viewChat() string {
 		}
 	}
 
-	body := chatBox.Width(60).Height(14).Render(log.String())
-	row := lipgloss.JoinHorizontal(lipgloss.Top, body, mini)
-
+	body := chatBox.Width(80).Height(12).Render(log.String())
 	input := inputStyle.Render("> " + m.input + "_")
 	footer := helpStyle.Render("[enter] send  [esc] back to pet  [ctrl+c] quit")
 
-	return header + "\n\n" + row + "\n" + input + "\n\n" + footer
+	return header + "\n\n" + pets + "\n\n" + body + "\n" + input + "\n\n" + footer
+}
+
+func petCard(role, name string, sp shared.Species, st shared.Stage, q shared.Quirk, art string) string {
+	label := fmt.Sprintf("%s · %s the %s (%s)\nquirk: %s", role, name, sp, st, q)
+	return petMini.Render(art + "\n" + label)
 }

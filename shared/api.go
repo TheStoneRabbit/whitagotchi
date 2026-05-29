@@ -16,6 +16,16 @@ type StatusResponse struct {
 	Creature Creature `json:"creature"`
 }
 
+// PeerInfoResponse describes another user's creature (read-only public view).
+type PeerInfoResponse struct {
+	Username  string    `json:"username"`
+	Species   Species   `json:"species"`
+	Rarity    Rarity    `json:"rarity"`
+	Stage     Stage     `json:"stage"`
+	AdultForm AdultForm `json:"adult_form,omitempty"`
+	Quirk     Quirk     `json:"quirk"`
+}
+
 type ActionRequest struct {
 	Action string `json:"action"` // feed, play, bathe
 }

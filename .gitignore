@@ -19,3 +19,10 @@ data/
 .vscode/
 .idea/
 .DS_Store
+
+# stray ssh keys (shouldn't live in the repo, but in case)
+masonlapine_id
+masonlapine_id.pub
+id_ed25519
+id_ed25519.pub
+*.pem

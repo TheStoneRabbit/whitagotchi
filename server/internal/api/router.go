@@ -25,6 +25,7 @@ func NewRouter(s *store.Store, e *game.Engine, h *chat.Hub) http.Handler {
 	mux.HandleFunc("POST /register", srv.register)
 	mux.HandleFunc("GET /status", srv.auth(srv.status))
 	mux.HandleFunc("POST /action", srv.auth(srv.action))
+	mux.HandleFunc("GET /peer", srv.auth(srv.peer))
 	mux.HandleFunc("GET /chat", srv.auth(srv.chatWS))
 	return mux
 }
@@ -83,6 +84,29 @@ func (s *Server) action(w http.ResponseWriter, r *http.Request, user *store.User
 	game.ApplyAction(c, req.Action)
 	s.store.UpdateCreature(c)
 	writeJSON(w, shared.StatusResponse{Creature: *c})
+}
+
+func (s *Server) peer(w http.ResponseWriter, r *http.Request, _ *store.User) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		http.Error(w, "name required", http.StatusBadRequest)
+		return
+	}
+	c, ok := s.store.Creature(name)
+	if !ok {
+		http.Error(w, "no such user", http.StatusNotFound)
+		return
+	}
+	s.engine.AdvanceNow(c)
+	s.store.UpdateCreature(c)
+	writeJSON(w, shared.PeerInfoResponse{
+		Username:  c.OwnerName,
+		Species:   c.Species,
+		Rarity:    c.Rarity,
+		Stage:     c.Stage,
+		AdultForm: c.AdultForm,
+		Quirk:     c.Quirk,
+	})
 }
 
 // chatWS upgrade is implemented in chat_ws.go to keep this file deps-free.
